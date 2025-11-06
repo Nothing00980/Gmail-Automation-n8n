@@ -66,23 +66,26 @@ Classifies and extracts tracking details (where possible).
 Add your screenshots here:
 
 ### ✅ Workflow Overview  
+<img width="1920" height="1080" alt="Screenshot 2025-11-02 125907" src="https://github.com/user-attachments/assets/5ff4a144-cb77-4bc6-9c0a-67f4bf4c08d2" />
 
 
-### ✅ Classification Flow  
-![Classification Flow](assets/classification_flow.png)
+### ✅ AI prompt  
+<img width="1920" height="1080" alt="Screenshot 2025-11-02 130026" src="https://github.com/user-attachments/assets/38951432-3e03-4c57-97a9-85af216bed77" />
+
 
 ### ✅ Sheets Output Example  
-![Sheets Output](assets/sheets_output.png)
 
-*(Upload your files inside `/assets` folder and update the paths above.)*
+<img width="1437" height="877" alt="email1" src="https://github.com/user-attachments/assets/0fac17bb-c1b1-4916-b3a8-6328e56cecf1" />
+
+
 
 ---
 
 ## 🎥 Demo Video (Optional)
-Show the workflow in action:
+the workflow in action:
 
-👉 **[Click to watch the demo](assets/demo_video.mp4)**  
-(or upload a `.gif` and embed it)
+
+
 
 ---
 
