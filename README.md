@@ -92,7 +92,7 @@ the workflow in action:
 ## 📥 Importing the Workflow
 
 1. Download the workflow file:  
-   **[`workflow.json`](https://github.com/Nothing00980/Gmail-Automation-n8n/blob/main/email-automation%20(2).json)**
+   **[`workflow.json`](https://github.com/Nothing00980/Gmail-Automation-n8n/blob/main/email-automatio.json)**
 
 2. Open your n8n instance  
 3. Go to **Import → From File**  
