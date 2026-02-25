@@ -211,7 +211,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.twilio.com/2010-04-01/Accounts/AC7ea1fdc38f644902d435d19c0624709f/Messages.json",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/********/Messages.json",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "twilioApi",
         "sendBody": true,
@@ -220,11 +220,11 @@
           "parameters": [
             {
               "name": "From",
-              "value": "whatsapp:+14155238886"
+              "value": ""
             },
             {
               "name": "To",
-              "value": "whatsapp:+919928237221"
+              "value": ""
             },
             {
               "name": "Body",
