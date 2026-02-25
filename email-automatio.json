@@ -1,0 +1,2004 @@
+{
+  "name": "email-automation",
+  "nodes": [
+    {
+      "parameters": {
+        "inputText": "=Subject :  {{ $json['Subject'] }}\nEmail body : {{ $json['snippet'] }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Social",
+              "description": "Emails from social media platforms and networking sites. Includes notifications from YouTube, Facebook, Instagram, Twitter, LinkedIn, TikTok, and other social platforms. Key indicators: Social media platform names, notification language, social engagement terms, platform-specific terminology."
+            },
+            {
+              "category": "Promotion",
+              "description": "Commercial emails designed to sell products or services. Includes marketing campaigns, sales offers, discount codes, product promotions, and advertising content. Key indicators: \"Sale,\" \"discount,\" \"buy now,\" \"limited time,\" promotional pricing, marketing language, product advertisements."
+            },
+            {
+              "category": "Tech",
+              "description": "Technology-related informational emails that are non-critical. Includes tech newsletters, software tips, technology news, product updates, and educational tech content. Key indicators: Technology terminology, software names, \"tutorial,\" \"tips,\" \"latest tech,\" gadget reviews, non-urgent tech information."
+            },
+            {
+              "category": "Recruitment",
+              "description": "Important employment-related emails from companies. Includes job applications, interview invitations, hiring forms, company recruitment communications, and professional opportunities. Key indicators: \"Application,\" \"interview,\" \"position,\" \"opportunity,\" \"hiring,\" company HR departments, job-related forms."
+            },
+            {
+              "category": "personal",
+              "description": "Casual communications from friends, family members, and personal contacts. Includes informal conversations, personal updates, and non-business correspondence from known individuals. Key indicators: Personal sender names, informal language, casual tone, family/friend references, personal stories."
+            },
+            {
+              "category": "Misc",
+              "description": "Catch-all category for emails that don't fit other classifications. Includes newsletters, general information, mixed content, administrative notices, and unclassifiable communications. Key indicators: Content spanning multiple categories, general announcements, miscellaneous information."
+            },
+            {
+              "category": "Updates",
+              "description": "Transactional and financial communications. Includes bills, receipts, shipping notifications, bank statements, order confirmations, delivery updates, and account statements. Key indicators: \"Receipt,\" \"invoice,\" \"shipped,\" \"statement,\" \"transaction,\" \"payment,\" \"delivery,\" order numbers, tracking information."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        -2032,
+        400
+      ],
+      "id": "7d8596c7-dafc-44ca-a012-d09ea728d693",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={{GEMINI_API_KEY}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Summarize the following email:\\\\n\\\\n subject : {{ $('Text Classifier').item.json.Subject.replace(/\\\\\\\\/g,'\\\\\\\\\\\\\\\\').replace(/\\\"/g,'\\\\\\\\\\\"').replace(/\\\\n/g,' ') }} \\\\n Email body : {{ $('Text Classifier').item.json.snippet.replace(/\\\\\\\\/g,'\\\\\\\\\\\\\\\\').replace(/\\\"/g,'\\\\\\\\\\\"').replace(/\\\\n/g,' ') }}\"\n        }\n      ]\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -416,
+        0
+      ],
+      "id": "e765fe5a-746{{GOOGLE_SHEET_ID}}",
+      "name": "HTTP Request",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={{GEMINI_API_KEY}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"role\": \"user\",\n      \"parts\": [\n        {\n          \"text\": \"You are an assistant replying to emails. Given the subject and body of a message, generate a professional, polite, and context-aware reply.\\n\\nHere is the input:\\n\\nSubject: {{ $('Text Classifier').item.json.Subject }}\\nEmail Body: {{ $('Text Classifier').item.json.snippet }}\\n reply on behalf of{{ $('Text Classifier').item.json.To }} - \\nPlease format your response strictly in this JSON structure:\\n{\\n  \\\"subject_line\\\": \\\"<subject for the reply>\\\",\\n  \\\"body\\\": \\\"<full body of the reply>\\\"\\n}\"\n        }\n      ]\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        912
+      ],
+      "id": "adf23875-{{GOOGLE_SHEET_ID}}",
+      "name": "HTTP Request1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "let rawText = $json.candidates[0].content.parts[0].text;\n\n// Remove triple backticks and any optional 'json' marker\nrawText = rawText.trim().replace(/^```json\\n/, '').replace(/^```\\n/, '').replace(/```$/, '').trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(rawText);\n} catch (err) {\n  throw new Error(\"Failed to parse Gemini JSON:\\n\" + rawText + \"\\n\\nError: \" + err.message);\n}\n\nreturn {\n  subject_line: parsed.subject_line,\n  body: parsed.body\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        912
+      ],
+      "id": "6b28e338-4a07-487a-a178-6d0d3aa9492b",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2496,
+        -256
+      ],
+      "id": "b32a4ba3-5e72-4333-87c1-ccaa7e55f791",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst cutoff = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000); // 15 days ago\n\nreturn items.filter(item => {\n  const emailTimestamp = new Date(item.json.timestamp);\n  return emailTimestamp < cutoff;\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1984,
+        -272
+      ],
+      "id": "08{{GOOGLE_SHEET_ID}}",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1744,
+        -272
+      ],
+      "id": "92bd3ea3-0830-4d3e-b0e1-bc7f43bec872",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access Gemini response text\nlet rawText = $json.output || '';\n\nif (!rawText) {\n  throw new Error(\"Gemini response text not found at candidates[0].content.parts[0].text\");\n}\n\n// Clean up triple backticks (optional JSON marker)\nrawText = rawText\n  .trim()\n  .replace(/^```json\\s*/i, '') // remove starting ```json\n  .replace(/^```\\s*/i, '')     // remove starting ```\n  .replace(/```$/, '')         // remove ending ```\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(rawText);\n} catch (err) {\n  // If parsing fails, return raw text instead of throwing\n  parsed = {\n    subject: null,\n    body: rawText,\n    important_links: []\n  };\n}\n\n// Return structured fields\nreturn [\n  {\n    json: {\n      subject: parsed.subject || null,\n      body: parsed.body || parsed.body === \"\" ? parsed.body : rawText,\n      important_links: parsed.important_links || []\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        576
+      ],
+      "id": "efd5bc20-2483-4{{GOOGLE_SHEET_ID}}",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d34de50d-a267-48e9-96ff-b844f1eb46bb",
+              "leftValue": "={{ $json.is_promotional }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        736
+      ],
+      "id": "fc2bf30e-9acf-477c-966c-8165d29a2f9b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/{{TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twilioApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+XXXXXXXXXXX"
+            },
+            {
+              "name": "To",
+              "value": "whatsapp:+XXXXXXXXXXX"
+            },
+            {
+              "name": "Body",
+              "value": "=📬 *Recruitment Alert!*\n\n🏢 Company: {{ $('Code3').item.json.company }}\n💼 Position: {{$('Code3').item.json.position}}\n✅ Status: {{ $('Code3').item.json.status }}\n🗓 Interview: {{ $('Code3').item.json.interview_date }}\n🔗 Link: {{ $('Code3').item.json.important_links || 'N/A' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        832
+      ],
+      "id": "e6bcf0{{GOOGLE_SHEET_ID}}",
+      "name": "HTTP Request4",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1296,
+        912
+      ],
+      "id": "94aefe88-b{{GOOGLE_SHEET_ID}}",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "n8n-promotional-details",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=0"
+        },
+        "combineFilters": "OR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -2208,
+        -272
+      ],
+      "id": "ba4b{{GOOGLE_SHEET_ID}}",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "CATEGORY_SOCIAL"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1104,
+        240
+      ],
+      "id": "290c4e{{GOOGLE_SHEET_ID}}",
+      "name": "Add label to message",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "CATEGORY_PROMOTIONS"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        384
+      ],
+      "id": "cc84a9c0-899b-47a5-9ae4-9d5da2aa0195",
+      "name": "Add label to message1",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_6289742907881281379"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -944,
+        640
+      ],
+      "id": "{{GOOGLE_SHEET_ID}}",
+      "name": "Add label to message2",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}\n",
+        "labelIds": [
+          "Label_364122607195845856"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1520,
+        720
+      ],
+      "id": "466550a5-7266-4972-81be-76acf46ede24",
+      "name": "Add label to message3",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "CATEGORY_PERSONAL",
+          "Label_177456068962696908"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        896
+      ],
+      "id": "0cbb4aff-8940-4{{GOOGLE_SHEET_ID}}",
+      "name": "Add label to message4",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_2373109539359280838"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        1072
+      ],
+      "id": "8ebfec6a-ed8e-4efe-a98c-b1c1e8ea9cd1",
+      "name": "Add label to message5",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Text Classifier').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -464,
+        384
+      ],
+      "id": "5de65b7f-653d-47c3-b309-188775ab385c",
+      "name": "Mark a message as read",
+      "webhookId": "ac{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "n8n-email",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $('Text Classifier').item.json.id }}",
+            "Date": "={{ $now }}",
+            "Subject Line": "={{ $('Text Classifier').item.json.Subject }}",
+            "Summary": "={{ $('AI Agent1').item.json.output }}",
+            "Snippet": "={{ $('Text Classifier').item.json.snippet }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject Line",
+              "displayName": "Subject Line",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Snippet",
+              "displayName": "Snippet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -208,
+        176
+      ],
+      "id": "5f06cd5e-5f62-46ec-b2c1-df786cf2f5dc",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "n8n-promotional-details",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=0"
+        },
+        "startIndex": "={{ $('Code1').item.json.row_number }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -1440,
+        -320
+      ],
+      "id": "de6d2dbe-acc2-487a-8c85-f502bc366fd5",
+      "name": "Delete rows or columns from sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Text Classifier').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        176
+      ],
+      "id": "d0{{GOOGLE_SHEET_ID}}",
+      "name": "Mark a message as read1",
+      "webhookId": "ac{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "n8n-promotional-details",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "MessageId": "={{ $('Text Classifier').item.json.id }}",
+            "threadId": "={{ $('Text Classifier').item.json.threadId }}",
+            "timestamp": "={{ $now }}",
+            "sender": "={{ $('Text Classifier').item.json.From }}",
+            "message": "={{ $('Text Classifier').item.json.snippet }}"
+          },
+          "matchingColumns": [
+            "MessageId"
+          ],
+          "schema": [
+            {
+              "id": "MessageId",
+              "displayName": "MessageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "threadId",
+              "displayName": "threadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sender",
+              "displayName": "sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -240,
+        384
+      ],
+      "id": "c5f2cdc4-d75b-4{{GOOGLE_SHEET_ID}}",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "n8n-tech-emails",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now }}",
+            "Summary": "={{ $json.body }}",
+            "Snippet": "={{ $('Text Classifier').item.json.snippet }}",
+            "Id": "={{ $('Text Classifier').item.json.id }}",
+            "Subject": "={{ $('Text Classifier').item.json.Subject }}",
+            "Links": "={{ $json.important_links }}"
+          },
+          "matchingColumns": [
+            "Id"
+          ],
+          "schema": [
+            {
+              "id": "Id",
+              "displayName": "Id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Snippet",
+              "displayName": "Snippet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Links",
+              "displayName": "Links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        0,
+        528
+      ],
+      "id": "a09{{GOOGLE_SHEET_ID}}",
+      "name": "Append or update row in sheet1",
+      "retryOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Text Classifier').item.json.id }}\n",
+        "labelIds": [
+          "Label_3999706375340795385",
+          "CATEGORY_PROMOTIONS"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        640
+      ],
+      "id": "{{GOOGLE_SHEET_ID}}",
+      "name": "Add label to message6",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "removeLabels",
+        "messageId": "={{ $('Text Classifier').item.json.id }}\n",
+        "labelIds": [
+          "Label_364122607195845856"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        640
+      ],
+      "id": "0d4df7e3-5203-4350-90bc-fa8710c2b947",
+      "name": "Remove label from message",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Text Classifier').item.json.id }}\n",
+        "message": "={{ $json.body }}",
+        "options": {
+          "replyToSenderOnly": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        64,
+        1024
+      ],
+      "id": "9a77605b-{{GOOGLE_SHEET_ID}}",
+      "name": "Reply to a message",
+      "webhookId": "ea634e2f-5aee-4a5c-bd89-b52c644f5256",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "n8n-recuitment-important",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Id": "={{ $('Text Classifier').item.json.id }}",
+            "company": "={{ $json.company }}",
+            "position": "={{ $json.position }}",
+            "interview_date": "={{ $json.interview_date }}",
+            "status": "={{ $json.status }}",
+            "Links": "={{ $json.important_links }}",
+            "timestamp": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "Id"
+          ],
+          "schema": [
+            {
+              "id": "Id",
+              "displayName": "Id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "position",
+              "displayName": "position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "interview_date",
+              "displayName": "interview_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Links",
+              "displayName": "Links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        240,
+        832
+      ],
+      "id": "e063ef66-3489-4e38-aee6-d86bdc1e2420",
+      "name": "Append or update row in sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Text Classifier').item.json.id }}",
+        "labelIds": [
+          "STARRED",
+          "YELLOW_STAR"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        464,
+        832
+      ],
+      "id": "5d{{GOOGLE_SHEET_ID}}",
+      "name": "Add label to message7",
+      "webhookId": "9c{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_555110058302807101",
+          "CATEGORY_UPDATES"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1536,
+        1280
+      ],
+      "id": "ff224582-dcf8-4e2f-8ec9-495f24d0f2e7",
+      "name": "Add label to message8",
+      "webhookId": "48509afe-43ee-4959-b640-d6c4a6f17085",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2672,
+        512
+      ],
+      "id": "d5a4f962-0cb7-4769-973c-e5c90169f2f3",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 5,
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -2240,
+        512
+      ],
+      "id": "dabdbaec-8078-4c2c-a35c-210d1794e249",
+      "name": "Get many messages",
+      "webhookId": "5f659b4{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -2208,
+        1600
+      ],
+      "id": "f88d0447-3304-46d8-b02e-9acd060bfeb4",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.MessageId }}",
+        "labelIds": [
+          "TRASH"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1552,
+        -160
+      ],
+      "id": "{{GOOGLE_SHEET_ID}}",
+      "name": "Add label to message9",
+      "webhookId": "e{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Text Classifier').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        432
+      ],
+      "id": "97e59380-ee74-4b25-b184-5c52b870bc9a",
+      "name": "Mark a message as read2",
+      "webhookId": "ac{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Text Classifier').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -464,
+        1280
+      ],
+      "id": "069a4b69-06b7-4ce9-9fe9-74f74c92bac3",
+      "name": "Mark a message as read3",
+      "webhookId": "ac{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Text Classifier').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -448,
+        1088
+      ],
+      "id": "b226{{GOOGLE_SHEET_ID}}",
+      "name": "Mark a message as read4",
+      "webhookId": "ac{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Text Classifier').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        1152
+      ],
+      "id": "db7a0985-5550-4e3d-af94-fe1bcfdb2d02",
+      "name": "Mark a message as read5",
+      "webhookId": "ac{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Text Classifier').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        624
+      ],
+      "id": "68db2{{GOOGLE_SHEET_ID}}",
+      "name": "Mark a message as read6",
+      "webhookId": "ac{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "{{SLACK_CHANNEL_ID}}",
+          "mode": "list",
+          "cachedResultName": "recruitment-n8n"
+        },
+        "text": "=📬 *Recruitment Alert!*\n\n🏢 Company: {{ $('Code3').item.json.company }}\n💼 Position: {{$('Code3').item.json.position}}\n✅ Status: {{ $('Code3').item.json.status }}\n🗓 Interview: {{ $('Code3').item.json.interview_date }}\n🔗 Link: {{ $('Code3').item.json.important_links || 'N/A' }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        1072
+      ],
+      "id": "43c047f7-4d87-479a-853f-d0c654f1da88",
+      "name": "Send a message",
+      "webhookId": "e0{{GOOGLE_SHEET_ID}}",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Subject : {{ $('Text Classifier').item.json.Subject }}\nBody : {{ $('Text Classifier').item.json.snippet }}\nFrom : {{ $('Text Classifier').item.json.From }}",
+        "options": {
+          "systemMessage": "=# overview\nyou are a powerful and reliable agent and your task is to analyize the email content and give appropriate output in the described output format\n\n## actions\n- if the email is a legit recuitment email send to the user directly then it is non-promotional email\n- if the email comes from any promotional sites or if it doesnt look like a legit email then it is a promotional email\n\n## output format\ncompany: The company or organization name\nposition: role or position that is being offered \nstatus: Current status (e.g., shortlisted, interview scheduled)\ninterview_date: If a date/time for interview or test is mentioned\nimportant_links: Array of URLs mentioned in the email\nis_promotional: true if this is a mass/bulk/promotional opportunity (like Coding Ninjas, Unstop, Internshala), false if it's a direct recruitment email addressed personally to the user\n\n\n## rules\nRespond in JSON like format as a string \nif any field is not specified then alias them as null\n\n\n## final reminders\nyou are an expert in finding if an email is promotional or not.\n  "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        -1312,
+        720
+      ],
+      "id": "f272acbd-2e9c-45f0-a67a-23f3780e3b96",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Text Classifier').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        1088
+      ],
+      "id": "0bf2{{GOOGLE_SHEET_ID}}",
+      "name": "Mark a message as read7",
+      "webhookId": "bf7d36cc-64ce-407d-8c52-bbaccb1caee8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 1: Safely access the AI response text\nlet rawText = $json.candidates?.[0]?.content?.parts?.[0]?.text;\n\nif (!rawText) {\n  throw new Error(\"AI response text not found. Check node path or structure.\");\n}\n\n// Step 2: Clean markdown formatting\nrawText = rawText\n  .trim()\n  .replace(/^```json\\n/, '')\n  .replace(/^```\\n/, '')\n  .replace(/```$/, '')\n  .trim();\n\n// Step 3: Parse the JSON\nlet parsed;\ntry {\n  parsed = JSON.parse(rawText);\n} catch (err) {\n  throw new Error(\"Failed to parse JSON:\\n\" + rawText + \"\\n\\nError: \" + err.message);\n}\n\n// Step 4: Return structured fields\nreturn [\n  {\n    json: {\n      company: parsed.company,\n      position: parsed.position,\n      status: parsed.status,\n      interview_date: parsed.interview_date,\n      important_links: parsed.important_links || [],\n      is_promotional: parsed.is_promotional\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        384
+      ],
+      "id": "6274245{{GOOGLE_SHEET_ID}}",
+      "name": "ispromotion",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the AI output string\nlet str = $json[\"output\"];\n\n// Remove code block markers and trim spaces\nstr = str.replace(/```json|```/g, '').trim();\n\n// Parse the JSON string into an object\nconst parsed = JSON.parse(str);\n\n// Return as proper JSON so later nodes can use it directly\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        720
+      ],
+      "id": "7735688{{GOOGLE_SHEET_ID}}",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -2000,
+        832
+      ],
+      "id": "a25affd2-cdcb-4a93-a7c5-19104fc34c91",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "{{CREDENTIAL_ID}}",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Subject  : {{ $('Text Classifier').item.json.Subject }}\n\nbody: {{ $('Text Classifier').item.json.snippet }}",
+        "options": {
+          "systemMessage": "summarize the following email and give the output as the summary only no extra words stay to the point"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        -944,
+        128
+      ],
+      "id": "5{{GOOGLE_SHEET_ID}}",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={{GEMINI_API_KEY}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Summarize the following email into structured JSON with fields: `subject`, `body`, and `important_links` (as an array).\\\\n\\\\nRespond ONLY with valid JSON.\\\\n\\\\n---\\\\n\\\\nSubject: {{ $('Text Classifier').item.json.Subject.replace(/\\\\\\\\/g,'\\\\\\\\\\\\\\\\').replace(/\\\"/g,'\\\\\\\\\\\"').replace(/\\\\n/g,' ') }} \\\\n\\\\nEmail body: {{ $('Text Classifier').item.json.snippet.replace(/\\\\\\\\/g,'\\\\\\\\\\\\\\\\').replace(/\\\"/g,'\\\\\\\\\\\"').replace(/\\\\n/g,' ') }}\"\n        }\n      ]\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        672
+      ],
+      "id": "47c069e2-7b9c-4ab1-8b64-a6e68427b0bd",
+      "name": "HTTP Request2",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Subject  : {{ $('Text Classifier').item.json.Subject }}\n\nbody: {{ $('Text Classifier').item.json.snippet }}",
+        "options": {
+          "systemMessage": "Summarize the following email into structured JSON with fields: `subject`, `body`, and `important_links` (as an array).\\\\n\\\\nRespond ONLY with valid JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        -832,
+        528
+      ],
+      "id": "a9c605a8-88{{GOOGLE_SHEET_ID}}",
+      "name": "AI Agent2"
+    }
+  ],
+  
+  "connections": {
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Delete rows or columns from sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Add label to message6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append or update row in sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message1": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message4": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message6": {
+      "main": [
+        [
+          {
+            "node": "Remove label from message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet2": {
+      "main": [
+        [
+          {
+            "node": "Add label to message7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message7": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mark a message as read7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message8": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message5": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove label from message": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply to a message": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message9": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read5": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read6": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ispromotion": {
+      "main": [
+        []
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "S5JX37JZo8O3Y9eQ"
+  },
+  "versionId": "68662d4a-f330-4{{GOOGLE_SHEET_ID}}",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ccd3fb{{GOOGLE_SHEET_ID}}"
+  },
+  "id": "{{CREDENTIAL_ID}}",
+  "tags": []
+}
