@@ -92,7 +92,7 @@ the workflow in action:
 ## 📥 Importing the Workflow
 
 1. Download the workflow file:  
-   **[`workflow.json`](workflow.json)**
+   **[`workflow.json`](email-automation (2))**
 
 2. Open your n8n instance  
 3. Go to **Import → From File**  
